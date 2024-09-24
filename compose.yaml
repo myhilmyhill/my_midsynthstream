@@ -1,0 +1,37 @@
+services:
+  synthesizer:
+    build: synthesizer
+    volumes:
+      - /run/user/1000/pipewire-0:/tmp/pipewire-0
+      - ./synthesizer/ini/rtpmidid.ini:/etc/rtpmidid/rtpmidid.ini
+      - sockets:/sockets
+    devices:
+      - /dev/snd
+    environment:
+      XDG_RUNTIME_DIR: /tmp
+      MIDI_OUT_PORT: "24"
+    ports:
+      - "5004:5004/udp"
+      - "5005:5005/udp"
+    healthcheck:
+      test: lsof | grep /sockets/pcm_socket || exit 1
+      interval: 10s
+      retries: 10
+      start_period: 30s
+      timeout: 10s
+
+  streamer:
+    build: streamer
+    depends_on:
+      synthesizer:
+        condition: service_healthy
+    volumes:
+      - sockets:/sockets
+    entrypoint: |
+      bash -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 44100 -ac 2 -i - -f rtp rtp://192.168.1.26:8888"
+    ports:
+      - "8888:8888/udp"
+
+volumes:
+  sockets:
+    driver: local
