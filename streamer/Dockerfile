@@ -1,3 +1,2 @@
-FROM jrottenberg/ffmpeg
-
-RUN apt update && apt install -y socat
+FROM jrottenberg/ffmpeg:7.1-scratch
+RUN apk update && apk add socat

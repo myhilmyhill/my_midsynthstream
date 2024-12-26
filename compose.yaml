@@ -16,8 +16,8 @@ services:
     healthcheck:
       test: lsof | grep /sockets/pcm_socket || exit 1
       interval: 10s
-      retries: 10
-      start_period: 30s
+      retries: 100
+      start_period: 3m
       timeout: 10s
 
   streamer:
@@ -25,10 +25,11 @@ services:
     depends_on:
       synthesizer:
         condition: service_healthy
+        required: false
     volumes:
       - sockets:/sockets
     entrypoint: |
-      bash -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 44100 -ac 2 -i - -f rtp rtp://192.168.1.26:8888"
+      sh -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 44100 -ac 2 -i - -c:a pcm_s16be -f rtp rtp://${RTP_HOST}:${RTP_PORT}"
     ports:
       - "8888:8888/udp"
 

@@ -10,17 +10,24 @@ until aplaymidi -l | grep -q "rtpmidid"; do
   sleep 1
 done
 
-echo "Please connect MIDI $MIDI_PORT..."
-until aplaymidi -l | grep -q "$MIDI_PORT"; do
+if [ ! "${MIDI_OUT_PORT:=0}" -gt 0 ]; then
+  echo 'Require to specify $MIDI_OUT_PORT:'
+  aplaymidi -l
+  exit 1
+fi
+
+echo "Please connect MIDI device (port: $MIDI_OUT_PORT)..."
+until aplaymidi -l | grep -q "$MIDI_OUT_PORT"; do
   sleep 1
 done
 
 echo "acconect rtpmidid $MIDI_OUT_PORT"
 if ! aconnect 128 $MIDI_OUT_PORT; then
+  echo "FYI devices:"
   aplaymidi -l
   exit 1
 fi
 
 # wait $pid
 rm -f /sockets/pcm_socket
-arecord -f cd -t raw | socat - UNIX-LISTEN:/sockets/pcm_socket,fork
+arecord --format=S16_LE --rate=44100 --channels=2 -t raw | socat - UNIX-LISTEN:/sockets/pcm_socket,fork
