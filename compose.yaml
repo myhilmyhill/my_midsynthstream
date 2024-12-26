@@ -10,6 +10,7 @@ services:
     environment:
       XDG_RUNTIME_DIR: /tmp
       MIDI_OUT_PORT: "24"
+      CAPTURE_DEVICE: "hw:1,0"
     ports:
       - "5004:5004/udp"
       - "5005:5005/udp"
@@ -31,7 +32,7 @@ services:
     entrypoint: |
       sh -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 44100 -ac 2 -i - -c:a pcm_s16be -f rtp rtp://${RTP_HOST}:${RTP_PORT}"
     ports:
-      - "8888:8888/udp"
+      - "${RTP_PORT}:${RTP_PORT}/udp"
 
 volumes:
   sockets:
