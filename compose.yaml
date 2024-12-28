@@ -3,14 +3,15 @@ services:
     build: synthesizer
     volumes:
       - /run/user/1000/pipewire-0:/tmp/pipewire-0
-      - ./synthesizer/ini/rtpmidid.ini:/etc/rtpmidid/rtpmidid.ini
+      - ./synthesizer/rtpmidid.ini:/etc/rtpmidid/rtpmidid.ini
+      - ./synthesizer/setup-amixer.sh:/usr/local/bin/setup-amixer.sh
       - sockets:/sockets
     devices:
       - /dev/snd
     environment:
       XDG_RUNTIME_DIR: /tmp
-      MIDI_OUT_PORT: "24"
-      CAPTURE_DEVICE: "hw:1,0"
+      MIDI_OUT_PORT: "28"
+      CAPTURE_DEVICE: "hw:2"
     ports:
       - "5004:5004/udp"
       - "5005:5005/udp"
@@ -20,6 +21,7 @@ services:
       retries: 100
       start_period: 3m
       timeout: 10s
+    # command: no-record
 
   streamer:
     build: streamer
@@ -30,7 +32,7 @@ services:
     volumes:
       - sockets:/sockets
     entrypoint: |
-      sh -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 44100 -ac 2 -i - -c:a pcm_s16be -f rtp rtp://${RTP_HOST}:${RTP_PORT}"
+      sh -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 48000 -ac 2 -i - -c:a pcm_s16be -f rtp rtp://${RTP_HOST}:${RTP_PORT}"
     ports:
       - "${RTP_PORT}:${RTP_PORT}/udp"
 

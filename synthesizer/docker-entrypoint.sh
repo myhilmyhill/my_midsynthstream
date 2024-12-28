@@ -1,9 +1,11 @@
 #!/bin/bash
+
+rm -f /run/dbus/pid /run/avahi-daemon/pid
 dbus-daemon --system --fork
 avahi-daemon --daemonize
 
 rtpmidid --ini /etc/rtpmidid/rtpmidid.ini &
-pid=$!
+rtpmidid_pid=$!
 
 echo "Please connect via rtpMIDI..."
 until aconnect -l | grep -q "rtpmidid"; do
@@ -35,4 +37,23 @@ if [ "$CAPTURE_DEVICE" = "" ]; then
   arecord -lL
   exit 1
 fi
-arecord --format=S16_LE --rate=44100 --channels=2 -t raw -D "$CAPTURE_DEVICE" | socat - UNIX-LISTEN:/sockets/pcm_socket,fork
+
+if [ "$1" = "no-record" ]; then
+  echo "no-record"
+  arecord -lL
+  wait $rtpmidid_pid
+  # ここで一生待つ
+fi
+
+{
+  arecord --format=S16_LE --rate=48000 --channels=2 -t raw -D "$CAPTURE_DEVICE" | socat - UNIX-LISTEN:/sockets/pcm_socket,fork
+} &
+arecord_pid=$!
+sleep 2
+if ! kill -0 $arecord_pid 2>/dev/null; then
+  echo "arecord failed to start"
+  exit 1
+fi
+
+setup-amixer.sh
+wait $arecord_pid

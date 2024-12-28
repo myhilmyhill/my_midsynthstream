@@ -9,4 +9,4 @@ RUN mkdir /var/run/rtpmidid \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --link ./docker-entrypoint.sh /usr/local/bin/
-CMD ["docker-entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
