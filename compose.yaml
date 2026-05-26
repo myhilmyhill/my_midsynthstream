@@ -1,6 +1,7 @@
 services:
   synthesizer:
     build: synthesizer
+    init: true
     volumes:
       - /run/user/1000/pipewire-0:/tmp/pipewire-0
       - ./synthesizer/rtpmidid.ini:/etc/rtpmidid/rtpmidid.ini
@@ -10,13 +11,13 @@ services:
       - /dev/snd
     environment:
       XDG_RUNTIME_DIR: /tmp
-      MIDI_OUT_PORT: "28"
-      CAPTURE_DEVICE: "hw:2"
+      MIDI_OUT_PORT: ${MIDI_OUT_PORT}
+      CAPTURE_DEVICE: ${CAPTURE_DEVICE}
     ports:
       - "5004:5004/udp"
       - "5005:5005/udp"
     healthcheck:
-      test: lsof | grep /sockets/pcm_socket || exit 1
+      test: ["CMD", "test", "-S", "/sockets/pcm_socket"]
       interval: 10s
       retries: 100
       start_period: 3m
@@ -24,17 +25,21 @@ services:
     # command: no-record
 
   streamer:
-    build: streamer
+    build:
+      dockerfile_inline: |
+        FROM jrottenberg/ffmpeg:7.1-alpine
+        RUN apk update && apk add socat
+    user: 1000:1000
     depends_on:
       synthesizer:
         condition: service_healthy
-        required: false
+        required: true
     volumes:
       - sockets:/sockets
     entrypoint: |
-      sh -c "socat UNIX-CONNECT:/sockets/pcm_socket - | ffmpeg -f s16le -ar 48000 -ac 2 -i - -c:a pcm_s16be -f rtp rtp://${RTP_HOST}:${RTP_PORT}"
+      sh -c "socat UNIX-CONNECT:/sockets/pcm_socket STDOUT | ffmpeg -f s16le -ar 48000 -ac 2 -i - -f wav -listen 1 http://0.0.0.0:50004"
     ports:
-      - "${RTP_PORT}:${RTP_PORT}/udp"
+      - "${RTP_PORT}:${RTP_PORT}"
 
 volumes:
   sockets:
