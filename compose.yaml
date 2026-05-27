@@ -27,8 +27,9 @@ services:
   streamer:
     build:
       dockerfile_inline: |
-        FROM jrottenberg/ffmpeg:7.1-alpine
+        FROM jrottenberg/ffmpeg:8.1-alpine
         RUN apk update && apk add socat
+    init: true
     user: 1000:1000
     depends_on:
       synthesizer:
