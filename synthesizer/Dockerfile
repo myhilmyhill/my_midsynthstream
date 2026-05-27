@@ -4,7 +4,6 @@ USER root
 
 RUN apt-get update \
  && apt-get install -y pipewire-alsa pipewire alsa-utils curl avahi-daemon socat lsof \
- && mkdir /run/dbus \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --link ./docker-entrypoint.sh /usr/local/bin/
